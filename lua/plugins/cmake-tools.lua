@@ -14,13 +14,14 @@ local function genKeys()
   -- map in leader c m s to select the target
   map("n", "<leader>cms", "<cmd>CMakeSelectLaunchTarget<CR>", { desc = "Select launch target" })
   -- map in leader c m t to run tests
-  map("n", "<leader>cmt", "<cmd>CMakeRunTest<CR>", { desc = "Run tests" })
+  map("n", "<leader>cmT", "<cmd>CMakeRunTest<CR>", { desc = "Run tests" })
   -- map in leader c m S to show the target settings
   map("n", "<leader>cmS", "<cmd>CMakeTargetSettings<CR>", { desc = "Show target settings" })
   -- map in leader c m p to launch CMakeSelectConfigurePreset
   map("n", "<leader>cmp", "<cmd>CMakeSelectConfigurePreset<CR>", { desc = "Select configure preset" })
   -- map in leader c m d to launch CMakeDebug
   map("n", "<leader>cmd", "<cmd>CMakeDebug<CR>", { desc = "Debug target" })
+  map("n", "<leader>cmt", "<cmd>CMakeCloseRunner<CR>", { desc = "Stop runner" })
 end
 
 -- Copied and overrided from the official lazyvim configuration about cmake-tools
