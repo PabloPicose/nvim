@@ -11,6 +11,9 @@ vim.pack.add {
 local dap = require 'dap'
 local dapui = require 'dapui'
 
+-- Do not stop on handled/throw exceptions by default.
+dap.defaults.fallback.exception_breakpoints = {}
+
 -- ── Adapters ───────────────────────────────────────────────────────────────
 dap.adapters.codelldb = {
   type = 'server',
@@ -93,6 +96,7 @@ vim.keymap.set('n', '<leader>di', dap.step_into, { desc = '[D]AP step [i]nto' })
 vim.keymap.set('n', '<leader>do', dap.step_over, { desc = '[D]AP step [o]ver' })
 vim.keymap.set('n', '<leader>dO', dap.step_out, { desc = '[D]AP step [O]ut' })
 vim.keymap.set('n', '<leader>ds', dap.terminate, { desc = '[D]AP [s]top debugging' })
+vim.keymap.set('n', '<leader>dx', function() dap.set_exception_breakpoints {} end, { desc = '[D]AP clear e[x]ception breakpoints' })
 
 vim.keymap.set('n', '<leader>du', dapui.toggle, { desc = '[D]AP toggle [u]i' })
 vim.keymap.set({ 'n', 'v' }, '<leader>de', function() dapui.eval(nil, { enter = true }) end, { desc = '[D]AP [e]val expression' })
