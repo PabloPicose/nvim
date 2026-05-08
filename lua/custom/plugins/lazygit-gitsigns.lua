@@ -7,7 +7,6 @@ local ok_gitsigns, gitsigns = pcall(require, 'gitsigns')
 -- ── lazygit ───────────────────────────────────────────────────────────────
 vim.pack.add { 'https://github.com/kdheepak/lazygit.nvim' }
 vim.keymap.set('n', '<leader>gg', '<cmd>LazyGit<CR>', { desc = '[G]it lazy[G]it' })
-
 -- ── gitsigns keymaps ──────────────────────────────────────────────────────
 -- These apply globally (not per-buffer like in kickstart/plugins/gitsigns.lua)
 -- and work immediately after gitsigns is loaded.

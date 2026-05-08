@@ -5,6 +5,12 @@ vim.keymap.set('n', '<C-Right>', '<C-w>3>', { desc = 'Increase window width' })
 vim.keymap.set('n', '<C-Up>',    '<C-w>3+', { desc = 'Increase window height' })
 vim.keymap.set('n', '<C-Down>',  '<C-w>3-', { desc = 'Decrease window height' })
 
+-- ── Escape from terminal mode ─────────────────────────────────────────────
+-- Plugins like lazygit/dap-ui/neotest may open terminal buffers.
+-- Without this, <Space> (leader) gets eaten as a literal character and
+-- which-key / all leader keymaps stop responding.
+vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
+
 -- ── Fit window to content (<leader>wf) ────────────────────────────────────
 -- Redimensiona el split actual al mínimo espacio que necesita el buffer:
 --   · Split vertical   → ajusta el ANCHO a la línea más larga + 2
