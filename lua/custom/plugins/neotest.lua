@@ -77,6 +77,28 @@ do
     end
     return patched
   end
+
+  -- ── Patch ctest:new() to use cmake-tools build directory ─────────────────
+  -- PROBLEM: neotest-ctest finds the build dir by scanning for CTestTestfile.cmake
+  -- up to depth 3 from the project root and picks the FIRST one (alphabetical).
+  -- If multiple build dirs exist (e.g. build/actions/ and build/debug/),
+  -- the wrong one gets picked → CTest runs 0 tests → all tests appear as "skipped".
+  --
+  -- FIX: Override ctest:new() so it scans from the cmake-tools active build
+  -- directory instead of the project root. Falls back to original behavior
+  -- if cmake-tools is not loaded or has no build dir configured.
+  local original_new = ctest_mod.new
+  ctest_mod.new = function(self, root)
+    local build_dir = nil
+    local ok_cmake, cmake = pcall(require, 'cmake-tools')
+    if ok_cmake and type(cmake.get_build_directory) == 'function' then
+      local bd = cmake.get_build_directory()
+      if bd then
+        build_dir = tostring(bd)
+      end
+    end
+    return original_new(self, build_dir or root)
+  end
 end
 
 -- ── neotest-ctest adapter ──────────────────────────────────────────────────
