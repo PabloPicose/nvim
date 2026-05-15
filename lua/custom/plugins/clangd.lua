@@ -10,7 +10,7 @@ vim.lsp.config('clangd', {
     'proto',
   },
   cmd = {
-    'clangd-20',
+    vim.fn.executable('clangd-20') == 1 and 'clangd-20' or 'clangd',
     '--header-insertion=never',
     '--query-driver=/home/ppicos/dev/emsdk/upstream/emscripten/em++,/home/ppicos/dev/emsdk/upstream/emscripten/emcc,/usr/bin/clang++,/usr/bin/g++',
   },

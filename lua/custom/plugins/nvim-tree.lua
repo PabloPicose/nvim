@@ -32,7 +32,10 @@ local function on_attach(bufnr)
   vim.keymap.set('n', 'l', api.node.open.edit, opts('Open file or expand folder'))
   vim.keymap.set('n', 'h', api.node.navigate.parent_close, opts('Close folder'))
   vim.keymap.set('n', '<Tab>', api.node.open.preview, opts('Open Preview'))
-  vim.keymap.set('n', 'H', api.tree.toggle_hidden_filter, opts('Toggle hidden'))
+  vim.keymap.set('n', 'H', function()
+    api.tree.toggle_hidden_filter()
+    api.tree.toggle_gitignore_filter()
+  end, opts('Toggle hidden and gitignore'))
   vim.keymap.set('n', 'R', api.tree.reload, opts('Refresh'))
   vim.keymap.set('n', 'r', api.fs.rename_basename, opts('Rename'))
   vim.keymap.set('n', 'c', api.fs.copy.node, opts('Copy'))
@@ -41,6 +44,10 @@ end
 
 nvim_tree.setup {
   on_attach = on_attach,
+  filters = {
+    dotfiles = true,
+    git_ignored = true,
+  },
   renderer = {
     icons = {
       show = {

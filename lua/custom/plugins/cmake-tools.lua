@@ -26,6 +26,7 @@ local function ensure_cmake_tools_setup(force)
         },
       },
     },
+    cmake_regenerate_on_save = false,
   }
 
   configured = true

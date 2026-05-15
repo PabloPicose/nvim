@@ -12,6 +12,31 @@ conform.formatters.jq_2 = {
 }
 conform.formatters_by_ft.json = { 'jq_2' }
 
+-- ── JSON: always use 2-space indentation ──────────────────────────────────
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'json',
+  callback = function()
+    vim.bo.tabstop = 2
+    vim.bo.shiftwidth = 2
+    vim.bo.expandtab = true
+  end,
+})
+
+-- ── Ensure jq is installed via Mason ──────────────────────────────────────
+vim.api.nvim_create_autocmd('VimEnter', {
+  once = true,
+  callback = function()
+    local ok_reg, registry = pcall(require, 'mason-registry')
+    if not ok_reg then return end
+    registry.refresh(function()
+      local ok_pkg, pkg = pcall(registry.get_package, 'jq')
+      if ok_pkg and not pkg:is_installed() then
+        pkg:install()
+      end
+    end)
+  end,
+})
+
 -- ── <leader>cf : format buffer/selection, then apply GuessIndent ──────────
 -- In visual mode conform automatically uses the selected range.
 vim.keymap.set({ 'n', 'v' }, '<leader>cf', function()
