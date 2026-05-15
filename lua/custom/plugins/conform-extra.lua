@@ -22,16 +22,21 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
--- ── Ensure jq is installed via Mason ──────────────────────────────────────
+-- ── Markdown: format with prettier ───────────────────────────────────────────
+conform.formatters_by_ft.markdown = { 'prettier' }
+
+-- ── Ensure tools are installed via Mason ─────────────────────────────────────
 vim.api.nvim_create_autocmd('VimEnter', {
   once = true,
   callback = function()
     local ok_reg, registry = pcall(require, 'mason-registry')
     if not ok_reg then return end
     registry.refresh(function()
-      local ok_pkg, pkg = pcall(registry.get_package, 'jq')
-      if ok_pkg and not pkg:is_installed() then
-        pkg:install()
+      for _, pkg_name in ipairs { 'jq', 'prettier' } do
+        local ok_pkg, pkg = pcall(registry.get_package, pkg_name)
+        if ok_pkg and not pkg:is_installed() then
+          pkg:install()
+        end
       end
     end)
   end,
