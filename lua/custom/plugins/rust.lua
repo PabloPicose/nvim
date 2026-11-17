@@ -46,6 +46,11 @@ vim.g.rustaceanvim = function()
       executor = 'termopen',
       enable_clippy = true,
       reload_workspace_from_cargo_toml = true,
+      -- rust-analyzer finished indexing → rescan tests for neotest (see neotest.lua).
+      on_initialized = function()
+        local ok, neotest = pcall(require, 'neotest')
+        if ok and neotest.rust_rediscover then neotest.rust_rediscover.refresh() end
+      end,
     },
     dap = {},
   }

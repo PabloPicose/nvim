@@ -127,8 +127,29 @@ pcall(require, 'custom.plugins.rust')
 local ok_rust_adapter, rust_adapter = pcall(require, 'rustaceanvim.neotest')
 if ok_rust_adapter then table.insert(adapters, rust_adapter) end
 
+-- ── Rust rediscovery consumer ──────────────────────────────────────────────
+-- rustaceanvim discovers tests through rust-analyzer (experimental/runnables).
+-- Neotest scans the project at startup, before rust-analyzer finished indexing,
+-- so every file comes back empty and only files you open/save get re-parsed
+-- → "No tests found". rust.lua calls refresh() from tools.on_initialized
+-- (rust-analyzer quiescent) to rescan the whole cargo workspace. Also on <leader>ctr.
+local function rust_rediscover(client)
+  return {
+    refresh = function()
+      require('nio').run(function()
+        client:get_adapters() -- ensures neotest started & adapters registered
+        for adapter_id in pairs(client._adapters or {}) do
+          local root = adapter_id:match '^rustaceanvim:(.+)$'
+          if root then client:_update_positions(root, { adapter = adapter_id }) end
+        end
+      end)
+    end,
+  }
+end
+
 neotest.setup {
   adapters = adapters,
+  consumers = { rust_rediscover = rust_rediscover },
   -- Set to DEBUG while troubleshooting; switch back to WARN when stable
   log_level = vim.log.levels.DEBUG,
   discovery = {
@@ -168,7 +189,23 @@ end, { desc = 'Open neotest log file' })
 -- ── Keymaps (<leader>ct = [C]ode [T]est) ─────────────────────────────────
 vim.keymap.set('n', '<leader>ctt', function() neotest.run.run() end, { desc = 'Run nearest test' })
 vim.keymap.set('n', '<leader>ctf', function() neotest.run.run(vim.fn.expand '%') end, { desc = 'Run tests in [F]ile' })
-vim.keymap.set('n', '<leader>cta', function() neotest.run.run(vim.fn.getcwd()) end, { desc = 'Run [A]ll tests' })
+-- Run the whole suite of every active adapter (cargo workspace root, ctest build
+-- dir...) instead of looking up a node whose id == cwd, which fails when cwd is
+-- not exactly the adapter root.
+vim.keymap.set('n', '<leader>cta', function()
+  local ids = vim.tbl_filter(function(id)
+    local counts = neotest.state.status_counts(id)
+    return counts ~= nil and counts.total > 0
+  end, neotest.state.adapter_ids())
+  if #ids == 0 then
+    vim.notify('neotest: no tests discovered yet (rust-analyzer still indexing? try <leader>ctr)', vim.log.levels.WARN)
+    return
+  end
+  for _, id in ipairs(ids) do
+    neotest.run.run { suite = true, adapter = id }
+  end
+end, { desc = 'Run [A]ll tests' })
+vim.keymap.set('n', '<leader>ctr', function() neotest.rust_rediscover.refresh() end, { desc = '[R]ediscover Rust tests' })
 vim.keymap.set('n', '<leader>ctl', function() neotest.run.run_last() end, { desc = 'Run [L]ast test again' })
 vim.keymap.set('n', '<leader>cts', function() neotest.summary.toggle() end, { desc = 'Toggle [S]ummary panel' })
 vim.keymap.set('n', '<leader>cto', function() neotest.output.open { enter = true } end, { desc = 'Open test [O]utput' })
