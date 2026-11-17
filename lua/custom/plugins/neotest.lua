@@ -92,8 +92,10 @@ do
     local build_dir = nil
     local ok_cmake, cmake = pcall(require, 'cmake-tools')
     if ok_cmake and type(cmake.get_build_directory) == 'function' then
-      local bd = cmake.get_build_directory()
-      if bd then
+      -- get_build_directory() errors if cmake-tools.setup() hasn't run yet
+      -- (setup is lazy: only when cwd has a CMakeLists.txt)
+      local ok_bd, bd = pcall(cmake.get_build_directory)
+      if ok_bd and bd then
         build_dir = tostring(bd)
       end
     end

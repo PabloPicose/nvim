@@ -34,8 +34,8 @@ dap.configurations.cpp = {
       local ok, cmake = pcall(require, 'cmake-tools')
       local default_dir = vim.fn.getcwd() .. '/build/'
       if ok and type(cmake.get_build_directory) == 'function' then
-        local bd = cmake.get_build_directory()
-        if bd then default_dir = tostring(bd) .. '/' end
+        local ok_bd, bd = pcall(cmake.get_build_directory)
+        if ok_bd and bd then default_dir = tostring(bd) .. '/' end
       end
       return vim.fn.input('Path to executable: ', default_dir, 'file')
     end,
