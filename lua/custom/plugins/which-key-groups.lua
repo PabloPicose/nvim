@@ -11,5 +11,7 @@ if not ok then return end
 wk.add {
   { '<leader>f', group = '[F]ile' },
   { '<leader>g', group = '[G]it' },
+  { '<leader>m', group = '[M]arkdown', mode = { 'n', 'x' } },
+  { '<leader>mt', group = '[T]able mode' },
   { '<leader>w', group = '[W]indow' },
 }

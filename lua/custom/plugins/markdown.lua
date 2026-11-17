@@ -1,20 +1,72 @@
 -- ── Markdown tools ──────────────────────────────────────────────────────────
 
 -- ── Interactive table formatter ─────────────────────────────────────────────
--- Remap vim-table-mode's prefix away from <leader>t to avoid clash with <leader>tm
-vim.g.table_mode_map_prefix = '<leader>T'
+-- All markdown keymaps live under <leader>m. vim-table-mode gets <leader>mt as
+-- its prefix: <leader>mtm toggle, mtr realign, mtt tableize, mtdd/mtdc delete
+-- row/col, mtic/mtiC insert col, mtfa/mtfe formulas, mts sort, mt? echo cell.
+vim.g.table_mode_map_prefix = '<leader>mt'
+vim.g.table_mode_tableize_d_map = '<leader>mtT'
 vim.pack.add { 'https://github.com/dhruvasagar/vim-table-mode' }
-vim.keymap.set('n', '<leader>tt', '<cmd>TableModeToggle<CR>', { desc = '[T]oggle [T]able mode' })
 
 -- ── render-markdown.nvim ─────────────────────────────────────────────────────
 vim.pack.add { 'https://github.com/MeanderingProgrammer/render-markdown.nvim' }
 
 local ok, rm = pcall(require, 'render-markdown')
 if ok then
-  rm.setup { file_types = { 'markdown' } }
+  rm.setup {
+    file_types = { 'markdown' },
+    -- Keep the cursor line rendered while navigating (normal mode). Raw text
+    -- shows up in insert mode, where render-markdown does not render at all.
+    anti_conceal = { disabled_modes = { 'n' } },
+    -- Same for Neovim's native conceal ([[ ]], `, **, link targets…).
+    win_options = { concealcursor = { rendered = 'nc' } },
+    -- Horizontal separator between every body row.
+    pipe_table = { grid = true },
+  }
 end
 
-vim.keymap.set('n', '<leader>tm', '<cmd>RenderMarkdown toggle<CR>', { desc = '[T]oggle [M]arkdown render' })
+vim.keymap.set('n', '<leader>mr', '<cmd>RenderMarkdown toggle<CR>', { desc = '[M]arkdown: toggle [R]ender' })
+
+-- ── j/k skip concealed lines ─────────────────────────────────────────────────
+-- render-markdown replaces table rows wider than the window with wrapped virtual
+-- lines and hides the real line (conceal_lines). Neovim can't hide the cursor
+-- line, so stepping onto one shows the raw row. j/k jump over hidden lines
+-- (screen height 0); <Down>/<Up>, :N or / still reach them to edit.
+local function is_hidden(lnum)
+  local ok, h = pcall(vim.api.nvim_win_text_height, 0, { start_row = lnum - 1, end_row = lnum - 1 })
+  return ok and h.all == 0
+end
+
+local function skip_hidden(key, dir)
+  return function()
+    local last = vim.fn.line '$'
+    local lnum = vim.fn.line '.'
+    local target = lnum
+    for _ = 1, vim.v.count1 do
+      local n = target + dir
+      while n >= 1 and n <= last and vim.fn.foldclosed(n) == -1 and is_hidden(n) do
+        n = n + dir
+      end
+      if n < 1 or n > last then break end
+      if vim.fn.foldclosed(n) ~= -1 then -- folds: plain motion
+        return vim.cmd.normal { vim.v.count1 .. key, bang = true }
+      end
+      target = n
+    end
+    local delta = math.abs(target - lnum)
+    if delta > 0 then vim.cmd.normal { delta .. key, bang = true } end
+  end
+end
+
+vim.api.nvim_create_autocmd('FileType', {
+  group = vim.api.nvim_create_augroup('custom-markdown-skip-hidden', { clear = true }),
+  pattern = 'markdown',
+  callback = function(ev)
+    local opts = { buffer = ev.buf }
+    vim.keymap.set('n', 'j', skip_hidden('j', 1), vim.tbl_extend('force', opts, { desc = 'Down (skip hidden lines)' }))
+    vim.keymap.set('n', 'k', skip_hidden('k', -1), vim.tbl_extend('force', opts, { desc = 'Up (skip hidden lines)' }))
+  end,
+})
 
 -- ── Follow markdown links with gd ────────────────────────────────────────────
 local accent_map = {
@@ -130,8 +182,18 @@ end
 
 local markdown_nav_group = vim.api.nvim_create_augroup('custom-markdown-nav', { clear = true })
 
+-- Inside an Obsidian vault (obsidian.nvim marks the buffer) delegate to the
+-- plugin: it understands [[wikilinks]], vault-wide name resolution, block refs…
+local function gd(buf)
+  if vim.b[buf].obsidian_buffer then
+    vim.cmd 'Obsidian follow_link'
+  else
+    follow_markdown_link()
+  end
+end
+
 local function set_markdown_gd(buf)
-  vim.keymap.set('n', 'gd', follow_markdown_link, { buffer = buf, desc = 'Follow markdown link' })
+  vim.keymap.set('n', 'gd', function() gd(buf) end, { buffer = buf, desc = 'Follow markdown link' })
 end
 
 vim.api.nvim_create_autocmd('FileType', {

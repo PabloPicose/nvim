@@ -119,8 +119,16 @@ local ctest_adapter = require('neotest-ctest').setup {
 -- ── neotest setup ──────────────────────────────────────────────────────────
 local neotest = require 'neotest'
 
+-- Rust tests: rustaceanvim's adapter (discovery via rust-analyzer).
+-- Load rust.lua first so vim.g.rustaceanvim is set before rustaceanvim
+-- initializes its config (require caches it, so it won't run twice).
+local adapters = { ctest_adapter }
+pcall(require, 'custom.plugins.rust')
+local ok_rust_adapter, rust_adapter = pcall(require, 'rustaceanvim.neotest')
+if ok_rust_adapter then table.insert(adapters, rust_adapter) end
+
 neotest.setup {
-  adapters = { ctest_adapter },
+  adapters = adapters,
   -- Set to DEBUG while troubleshooting; switch back to WARN when stable
   log_level = vim.log.levels.DEBUG,
   discovery = {
@@ -128,7 +136,7 @@ neotest.setup {
     concurrent = 0,
     filter_dir = function(name)
       -- Skip common non-test directories
-      local skip = { build = true, out = true, cmake = true, doc = true, docs = true, tools = true, scripts = true, venv = true }
+      local skip = { build = true, out = true, cmake = true, doc = true, docs = true, tools = true, scripts = true, venv = true, target = true }
       return not skip[name]
     end,
   },
