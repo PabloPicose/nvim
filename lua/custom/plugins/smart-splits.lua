@@ -11,7 +11,8 @@ local ok, smart_splits = pcall(require, 'smart-splits')
 if ok then
   smart_splits.setup {
     move = { at_edge = 'stop' },
-    mux = { backend = 'smart-splits-backend-kitty' },
+    -- Over SSH (or outside kitty) the backend isn't detected; fall back silently.
+    mux = { backend = 'smart-splits-backend-kitty', warn_if_unusable = false },
   }
 
   vim.keymap.set('n', '<C-h>', smart_splits.move_cursor_left, { desc = 'Move focus left (nvim/kitty)' })
