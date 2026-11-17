@@ -5,13 +5,6 @@
 --
 -- `gd` inside a vault note is handled in markdown.lua (delegates here).
 
-vim.pack.add {
-  { src = 'https://github.com/obsidian-nvim/obsidian.nvim', version = vim.version.range '*' },
-}
-
-local ok, obsidian = pcall(require, 'obsidian')
-if not ok then return end
-
 -- Vaults are discovered from the Obsidian app's own registry, so nothing
 -- machine-specific is hardcoded here. On a machine without Obsidian (or with
 -- no vaults) the plugin is simply not set up.
@@ -40,7 +33,18 @@ local function discover_vaults()
 end
 
 local workspaces = discover_vaults()
+
+-- Always installed (same lockfile on every machine), but only put on the
+-- runtimepath when there are vaults: an unconfigured obsidian.nvim makes other
+-- plugins that probe for it (render-markdown's :checkhealth) error out with
+-- "Obsidian client has not been set".
+vim.pack.add({
+  { src = 'https://github.com/obsidian-nvim/obsidian.nvim', version = vim.version.range '*' },
+}, { load = #workspaces == 0 and function() end or nil })
 if #workspaces == 0 then return end
+
+local ok, obsidian = pcall(require, 'obsidian')
+if not ok then return end
 
 obsidian.setup {
   legacy_commands = false, -- will be removed in 4.0.0
@@ -60,6 +64,10 @@ obsidian.setup {
   new_notes_location = 'current_dir',
 
   link = { style = 'wiki' },
+
+  -- render-markdown.nvim (markdown.lua) already renders checkboxes, links...;
+  -- both decorating the same buffer conflicts.
+  ui = { enable = false },
 }
 
 -- ── Keymaps (under <leader>m, shared with the rest of markdown.lua) ─────────

@@ -22,6 +22,9 @@ if ok then
     win_options = { concealcursor = { rendered = 'nc' } },
     -- Horizontal separator between every body row.
     pipe_table = { grid = true },
+    -- LaTeX needs an external converter (utftex / latex2text) plus the latex
+    -- parser; not worth requiring on every machine.
+    latex = { enabled = false },
   }
 end
 
