@@ -3,24 +3,35 @@
 -- Debugging uses codelldb from Mason (see mason-dap.lua).
 -- Tests go through neotest (adapter registered in neotest.lua), <leader>ct*.
 --
--- Keymaps (only in Rust buffers):
---   <leader>cr  run target under cursor (fn main / test / bench)
---   <leader>cR  pick runnable (binaries, tests, examples...)
---   <leader>cl  re-run last runnable
---   <leader>cd  debug target under cursor
---   <leader>cD  pick debuggable
---   <leader>cL  re-debug last debuggable
---   <leader>cT  pick testable (cargo test targets)
---   <leader>ca  code actions (grouped, rust-analyzer flavour)
---   <leader>ce  expand macro          <leader>cE  explain error (rustc --explain)
---   <leader>ci  show diagnostic as cargo prints it
---   <leader>ck  run cargo check/clippy now (flyCheck)
---   <leader>cc  open Cargo.toml       <leader>cp  go to parent module
---   <leader>co  open docs.rs for symbol under cursor
---   <leader>cj  join lines (Rust-aware)
---   <leader>cs  structural search & replace
---   <M-k>/<M-j> move item (fn, struct, impl...) up/down
---   K           hover with actions (Enter on an action to run it)
+-- Keymaps: everything Rust-specific lives under <leader>cr ([C]ode → [R]ust),
+-- buffer-local, so it never collides with other languages.
+--
+--  .rs buffers (rust-analyzer attached)        Cargo.toml buffers (crates.nvim)
+--   <leader>crr  run target under cursor        <leader>crv  show versions
+--   <leader>crR  pick runnable                  <leader>crf  show features
+--   <leader>crl  re-run last runnable           <leader>crd  show dependencies
+--   <leader>crd  debug target under cursor      <leader>crp  crate popup (details)
+--   <leader>crD  pick debuggable                <leader>cru  update crate (n/v)
+--   <leader>crL  re-debug last debuggable       <leader>crU  upgrade crate, major (n/v)
+--   <leader>crt  pick testable                  <leader>cra  update all crates
+--   <leader>crT  tests related to cursor        <leader>crA  upgrade all crates
+--   <leader>cra  code action (grouped)          <leader>crx  plain crate → inline table
+--   <leader>cre  expand macro                   <leader>crX  extract crate → [table]
+--   <leader>crE  explain error (rustc)          <leader>cro  open crates.io
+--   <leader>cri  diagnostic, cargo style        <leader>crD  open docs
+--   <leader>crI  related diagnostics            <leader>crH  open homepage
+--   <leader>crk  cargo check/clippy now         <leader>crG  open repository
+--   <leader>crK  clear check diagnostics
+--   <leader>crc  open Cargo.toml                Not under <leader>cr:
+--   <leader>crp  parent module                    <M-k>/<M-j> move item up/down
+--   <leader>cro  docs.rs for symbol               K           hover with actions
+--   <leader>crO  external docs (std/local)        Tests via neotest: <leader>ct*
+--   <leader>crj  join lines (n/v)
+--   <leader>crs  structural search & replace
+--   <leader>crw  workspace symbols  (W: + deps)
+--   <leader>crv… view: t syntax tree, h HIR, m MIR, g crate graph
+--   <leader>crS… server: r reload workspace, p rebuild proc macros,
+--                        R restart rust-analyzer, l log file
 
 vim.pack.add {
   { src = 'https://github.com/mrcjkb/rustaceanvim', version = vim.version.range '^9' },
@@ -79,31 +90,60 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
 
     -- Run / debug / test
-    map('<leader>cr', 'RustLsp run', '[R]un target under cursor')
-    map('<leader>cR', 'RustLsp runnables', 'pick [R]unnable')
-    map('<leader>cl', 'RustLsp! runnables', 're-run [L]ast runnable')
-    map('<leader>cd', 'RustLsp debug', '[D]ebug target under cursor')
-    map('<leader>cD', 'RustLsp debuggables', 'pick [D]ebuggable')
-    map('<leader>cL', 'RustLsp! debuggables', 're-debug [L]ast debuggable')
-    map('<leader>cT', 'RustLsp testables', 'pick [T]estable')
+    map('<leader>crr', 'RustLsp run', '[R]un target under cursor')
+    map('<leader>crR', 'RustLsp runnables', 'pick [R]unnable')
+    map('<leader>crl', 'RustLsp! runnables', 're-run [L]ast runnable')
+    map('<leader>crd', 'RustLsp debug', '[D]ebug target under cursor')
+    map('<leader>crD', 'RustLsp debuggables', 'pick [D]ebuggable')
+    map('<leader>crL', 'RustLsp! debuggables', 're-debug [L]ast debuggable')
+    map('<leader>crt', 'RustLsp testables', 'pick [T]estable')
+    map('<leader>crT', 'RustLsp relatedTests', 'related [T]ests')
 
     -- Code intelligence
-    map('<leader>ca', 'RustLsp codeAction', 'code [A]ction (grouped)')
-    map('<leader>ce', 'RustLsp expandMacro', '[E]xpand macro')
-    map('<leader>cE', 'RustLsp explainError', '[E]xplain error')
-    map('<leader>ci', 'RustLsp renderDiagnostic', '[I]nspect diagnostic (cargo style)')
-    map('<leader>ck', 'RustLsp flyCheck', 'run cargo chec[K]/clippy')
-    map('<leader>cc', 'RustLsp openCargo', 'open [C]argo.toml')
-    map('<leader>cp', 'RustLsp parentModule', '[P]arent module')
-    map('<leader>co', 'RustLsp openDocs', '[O]pen docs.rs')
-    map('<leader>cj', 'RustLsp joinLines', '[J]oin lines', { 'n', 'v' })
-    map('<leader>cs', function()
+    map('<leader>cra', 'RustLsp codeAction', 'code [A]ction (grouped)')
+    map('<leader>cre', 'RustLsp expandMacro', '[E]xpand macro')
+    map('<leader>crE', 'RustLsp explainError', '[E]xplain error')
+    map('<leader>cri', 'RustLsp renderDiagnostic', '[I]nspect diagnostic (cargo style)')
+    map('<leader>crI', 'RustLsp relatedDiagnostics', 'related d[I]agnostics')
+    map('<leader>crk', 'RustLsp flyCheck run', 'run cargo chec[K]/clippy')
+    map('<leader>crK', 'RustLsp flyCheck clear', 'clear chec[K] diagnostics')
+    map('<leader>crc', 'RustLsp openCargo', 'open [C]argo.toml')
+    map('<leader>crp', 'RustLsp parentModule', '[P]arent module')
+    map('<leader>cro', 'RustLsp openDocs', '[O]pen docs.rs')
+    map('<leader>crO', 'RustLsp externalDocs', '[O]pen external docs')
+    map('<leader>crj', 'RustLsp joinLines', '[J]oin lines', { 'n', 'v' })
+    map('<leader>crs', function()
       local query = vim.fn.input 'SSR (e.g. foo($a) ==>> bar($a)): '
       if query ~= '' then vim.cmd('RustLsp ssr ' .. query) end
     end, '[S]tructural search & replace')
+    map('<leader>crw', 'RustLsp workspaceSymbol', '[W]orkspace symbols')
+    map('<leader>crW', 'RustLsp! workspaceSymbol', '[W]orkspace symbols (+ deps)')
+
+    -- View internals
+    map('<leader>crvt', 'RustLsp syntaxTree', 'syntax [T]ree')
+    map('<leader>crvh', 'RustLsp view hir', '[H]IR')
+    map('<leader>crvm', 'RustLsp view mir', '[M]IR')
+    map('<leader>crvg', 'RustLsp crateGraph', 'crate [G]raph')
+
+    -- rust-analyzer server
+    map('<leader>crSr', 'RustLsp reloadWorkspace', '[R]eload workspace')
+    map('<leader>crSp', 'RustLsp rebuildProcMacros', 'rebuild [P]roc macros')
+    map('<leader>crSR', 'RustAnalyzer restart', '[R]estart rust-analyzer')
+    map('<leader>crSl', 'RustLsp logFile', '[L]og file')
+
+    -- Not leader-based
     map('<M-k>', 'RustLsp moveItem up', 'move item up')
     map('<M-j>', 'RustLsp moveItem down', 'move item down')
     map('K', 'RustLsp hover actions', 'hover actions')
+
+    local ok_wk, wk = pcall(require, 'which-key')
+    if ok_wk then
+      wk.add {
+        { '<leader>cr', group = '[R]ust', buffer = buf, mode = { 'n', 'v' } },
+        { '<leader>crv', group = '[V]iew internals', buffer = buf },
+        { '<leader>crS', group = '[S]erver (rust-analyzer)', buffer = buf },
+      }
+    end
   end,
 })
 
@@ -133,12 +173,23 @@ if ok_crates then
       local function map(keys, fn, desc, mode)
         vim.keymap.set(mode or 'n', keys, fn, { buffer = args.buf, desc = 'Crates: ' .. desc })
       end
-      map('<leader>cv', crates.show_versions_popup, 'show [V]ersions')
-      map('<leader>cF', crates.show_features_popup, 'show [F]eatures')
-      map('<leader>cu', crates.update_crate, '[U]pdate crate', { 'n', 'v' })
-      map('<leader>cU', crates.upgrade_crate, '[U]pgrade crate (major)', { 'n', 'v' })
-      map('<leader>cA', crates.upgrade_all_crates, 'upgrade [A]ll crates')
-      map('<leader>co', crates.open_crates_io, '[O]pen crates.io')
+      map('<leader>crv', crates.show_versions_popup, 'show [V]ersions')
+      map('<leader>crf', crates.show_features_popup, 'show [F]eatures')
+      map('<leader>crd', crates.show_dependencies_popup, 'show [D]ependencies')
+      map('<leader>crp', crates.show_crate_popup, 'crate [P]opup')
+      map('<leader>cru', crates.update_crate, '[U]pdate crate', { 'n', 'v' })
+      map('<leader>crU', crates.upgrade_crate, '[U]pgrade crate (major)', { 'n', 'v' })
+      map('<leader>cra', crates.update_all_crates, 'update [A]ll crates')
+      map('<leader>crA', crates.upgrade_all_crates, 'upgrade [A]ll crates (major)')
+      map('<leader>crx', crates.expand_plain_crate_to_inline_table, 'e[X]pand to inline table')
+      map('<leader>crX', crates.extract_crate_into_table, 'e[X]tract into table')
+      map('<leader>cro', crates.open_crates_io, '[O]pen crates.io')
+      map('<leader>crD', crates.open_documentation, 'open [D]ocs')
+      map('<leader>crH', crates.open_homepage, 'open [H]omepage')
+      map('<leader>crG', crates.open_repository, 'open repository ([G]it)')
+
+      local ok_wk, wk = pcall(require, 'which-key')
+      if ok_wk then wk.add { { '<leader>cr', group = '[R]ust (crates)', buffer = args.buf, mode = { 'n', 'v' } } } end
     end,
   })
 end
