@@ -12,11 +12,39 @@ vim.pack.add {
 local ok, obsidian = pcall(require, 'obsidian')
 if not ok then return end
 
+-- Vaults are discovered from the Obsidian app's own registry, so nothing
+-- machine-specific is hardcoded here. On a machine without Obsidian (or with
+-- no vaults) the plugin is simply not set up.
+local function discover_vaults()
+  local candidates = {
+    (vim.env.XDG_CONFIG_HOME or '~/.config') .. '/obsidian/obsidian.json', -- Linux
+    '~/.var/app/md.obsidian.Obsidian/config/obsidian/obsidian.json', -- flatpak
+    '~/Library/Application Support/obsidian/obsidian.json', -- macOS
+    vim.env.APPDATA and (vim.env.APPDATA .. '/obsidian/obsidian.json') or nil, -- Windows
+  }
+  local workspaces, seen = {}, {}
+  for _, file in ipairs(candidates) do
+    file = vim.fs.normalize(vim.fn.expand(file))
+    if vim.fn.filereadable(file) == 1 then
+      local ok_json, data = pcall(vim.json.decode, table.concat(vim.fn.readfile(file), '\n'))
+      for _, vault in pairs(ok_json and type(data) == 'table' and data.vaults or {}) do
+        local path = vault.path and vim.fs.normalize(vault.path)
+        if path and not seen[path] and vim.fn.isdirectory(path) == 1 then
+          seen[path] = true
+          table.insert(workspaces, { name = vim.fs.basename(path), path = path })
+        end
+      end
+    end
+  end
+  return workspaces
+end
+
+local workspaces = discover_vaults()
+if #workspaces == 0 then return end
+
 obsidian.setup {
   legacy_commands = false, -- will be removed in 4.0.0
-  workspaces = {
-    { name = 'a300m', path = '~/Documents/indra/A300mNotes' },
-  },
+  workspaces = workspaces,
 
   picker = { name = 'telescope.nvim' },
 
